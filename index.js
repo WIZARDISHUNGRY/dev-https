@@ -6,13 +6,19 @@ var minimist = require('minimist')
 
 var CERT_OPTIONS = { days: 7, selfSigned: true }
 var args = minimist(process.argv.slice(2))
-if (args.h || args['?'] || args.help || args._.length !== 1) {
-  console.error('Usage: dev-https [-p <port>] <url>')
+if (args.h || args['?'] || args.help || args._.length < 1) {
+  console.error('Usage: dev-https [<port>:]<url> [<port2>:]<url2> …')
   process.exit(1)
 }
 
-var baseUrl = args._[0]
-var port = args.p || 4430
+var port = 4430;
+var hosts = args._.map( (arg) => {
+  var match = arg.match(/^((\d+):)?(.*)/);
+  return {
+    baseUrl: match[3],
+    port: match[2] || port++
+  }
+});
 
 function createCert (callback) {
   pem.createCertificate(CERT_OPTIONS, created)
@@ -29,29 +35,6 @@ function createCert (callback) {
   }
 }
 
-function setupServer (opts, callback) {
-  var server = https.createServer(opts, handler)
-  server.listen(opts.port, callback)
-}
-
-function handler (req, res) {
-  var requestHeaders = {}
-  Object.keys(req.headers).forEach(function (key) {
-    if (key.toLowerCase !== 'host') {
-      requestHeaders[key] = req.headers[key]
-    }
-  })
-
-  var requestOpts = {
-    url: baseUrl + req.url,
-    method: req.method,
-    headers: requestHeaders
-  }
-
-  var proxyReq = request(requestOpts)
-  req.pipe(proxyReq).pipe(res)
-}
-
 createCert(created)
 
 function created (err, cert) {
@@ -59,20 +42,36 @@ function created (err, cert) {
     throw err
   }
 
-  var opts = {
-    key: cert.key,
-    cert: cert.cert,
-    port: port
-  }
+  hosts.forEach( (host, index) => {
+    var opts = {
+      key: cert.key,
+      cert: cert.cert,
+      port: host.port
+    }
+    var server = https.createServer(opts, (req, res) => {
+      var requestHeaders = {}
+      Object.keys(req.headers).forEach( (key) => {
+        if (key.toLowerCase !== 'host') {
+          requestHeaders[key] = req.headers[key]
+        }
+      })
 
-  setupServer(opts, finishedSetup)
+      var requestOpts = {
+        url: host.baseUrl + req.url,
+        method: req.method,
+        headers: requestHeaders
+      }
+
+      var proxyReq = request(requestOpts);
+      req.pipe(proxyReq).pipe(res);
+    });
+    server.listen(opts.port, (err) => {
+      if (err) {
+        console.log(err);
+      }
+      console.log('Listening on https://localhost:' + opts.port);
+      console.log('Proxying requests to ' + host.baseUrl);
+    });
+  });
 }
 
-function finishedSetup (err) {
-  if (err) {
-    throw err
-  }
-
-  console.log('Listening on https://localhost:' + port)
-  console.log('Proxying requests to ' + baseUrl)
-}

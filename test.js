@@ -10,7 +10,7 @@ test('start and serve requests', function (t) {
 
   function listening (err) {
     t.error(err)
-    proc = spawn(process.execPath, ['index.js', '-p', '8001', 'http://localhost:8000'])
+    proc = spawn(process.execPath, ['index.js', '8001:http://localhost:8000'])
 
     // wait for process to start up
     setTimeout(started, 5000)

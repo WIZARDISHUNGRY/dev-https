@@ -6,13 +6,13 @@ Dead simple HTTPS reverse proxy for use when developing
 [![Build Status][travis-badge]][travis]
 
 This utility automatically creates a self-signed certificate, sets up an HTTPS
-server, and proxies all requests to the server you specify. Use it for quickly
+server, and proxies all requests to the server(s) you specify. Use it for quickly
 testing a site over https when developing.
 
 ## Usage
 
 ```sh
-dev-https [-p <port>] <url>
+dev-https [<port>:]<url> [<port2>:]<url2>
 ```
 
 First, you need to install it:
@@ -31,7 +31,13 @@ By default it runs on port 4430 (https://localhost:4430), but you can specify
 the port:
 
 ```sh
-dev-https -p 443 http://localhost:8000
+dev-https 443:http://localhost:8000
+```
+
+You may also specify multiple hosts:
+
+```sh
+dev-https http://localhost:8000 http://localhost:8001
 ```
 
 That's it!
