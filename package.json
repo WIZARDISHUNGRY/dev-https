@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "minimist": "^1.2.0",
-    "pem": "^1.8.1",
+    "pem": "^1.12.3",
     "request": "^2.65.0"
   },
   "devDependencies": {
